@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head><base target="_top"><meta charset="utf-8"></head>
+<body>
+<script>
+(function () {
+  'use strict';
+  const SCOPE = 'drawnix-mindmap-cloud';
+  const ALLOWED = <?!= allowedOriginsJson ?>;
+
+  function allowed(origin) {
+    return ALLOWED.indexOf(origin) >= 0;
+  }
+
+  function reply(event, id, ok, result, error) {
+    event.source.postMessage({ scope: SCOPE, type: 'response', id: id, ok: ok, result: result || null, error: error || '' }, event.origin);
+  }
+
+  function run(event, id, fn, args) {
+    let runner = google.script.run
+      .withSuccessHandler(function (result) { reply(event, id, true, result, ''); })
+      .withFailureHandler(function (err) { reply(event, id, false, null, err && err.message ? err.message : String(err)); });
+    runner[fn].apply(runner, args || []);
+  }
+
+  window.addEventListener('message', function (event) {
+    if (!allowed(event.origin)) return;
+    const msg = event.data;
+    if (!msg || msg.scope !== SCOPE || msg.type !== 'request' || typeof msg.id !== 'number') return;
+    const p = msg.payload || {};
+    switch (msg.action) {
+      case 'ping': run(event, msg.id, 'apiPing', []); break;
+      case 'loadLibrary': run(event, msg.id, 'apiLoadLibrary', []); break;
+      case 'saveLibrary': run(event, msg.id, 'apiSaveLibrary', [p.data]); break;
+      case 'loadMap': run(event, msg.id, 'apiLoadMap', [p.id]); break;
+      case 'saveMap': run(event, msg.id, 'apiSaveMap', [p.id, p.data]); break;
+      case 'deleteMap': run(event, msg.id, 'apiDeleteMap', [p.id]); break;
+      case 'loadLegacy': run(event, msg.id, 'apiLoadLegacy', []); break;
+      default: reply(event, msg.id, false, null, '不支持的云端操作');
+    }
+  });
+
+  window.parent.postMessage({ scope: SCOPE, type: 'ready' }, '*');
+})();
+</script>
+</body>
+</html>
