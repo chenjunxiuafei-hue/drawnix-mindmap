@@ -53,22 +53,30 @@ export class CloudBridge {
     this.readyPromise = new Promise<void>((resolve) => {
       this.readyResolve = resolve;
     });
+
     const iframe = document.createElement('iframe');
     iframe.title = 'Google Apps Script 云端桥接';
+
+    // iOS Safari may defer/suspend fully invisible or far-offscreen iframes.
+    // Keep the bridge inside the viewport while making it effectively invisible.
     iframe.style.position = 'fixed';
-    iframe.style.width = '1px';
-    iframe.style.height = '1px';
-    iframe.style.opacity = '0';
+    iframe.style.width = '2px';
+    iframe.style.height = '2px';
+    iframe.style.opacity = '0.01';
     iframe.style.pointerEvents = 'none';
     iframe.style.border = '0';
-    iframe.style.left = '-9999px';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.zIndex = '-1';
+    iframe.setAttribute('aria-hidden', 'true');
+
     iframe.src = `${url}?mode=bridge&v=${Date.now()}`;
     document.body.appendChild(iframe);
     this.iframe = iframe;
     return this.waitReady();
   }
 
-  async waitReady(timeoutMs = 15000) {
+  async waitReady(timeoutMs = 20000) {
     if (this.ready) return;
     if (!this.readyPromise) throw new Error('尚未配置云端地址');
     await Promise.race([
