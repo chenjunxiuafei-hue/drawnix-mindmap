@@ -9,6 +9,7 @@ type Pending = {
 
 export class CloudBridge {
   private iframe: HTMLIFrameElement | null = null;
+  private targetWindow: Window | null = null;
   private ready = false;
   private seq = 0;
   private pending = new Map<number, Pending>();
@@ -38,6 +39,7 @@ export class CloudBridge {
     this.ready = false;
     if (this.iframe) this.iframe.remove();
     this.iframe = null;
+    this.targetWindow = null;
     this.readyPromise = null;
     this.readyResolve = null;
     this.pending.forEach((p) => {
@@ -54,11 +56,18 @@ export class CloudBridge {
       this.readyResolve = resolve;
     });
 
+    // Preferred mode on iPhone/Safari: the Drawnix page is opened inside the
+    // Apps Script wrapper. In that case google.script.run lives in the parent,
+    // so no third-party Apps Script iframe is needed at all.
+    if (window.parent && window.parent !== window) {
+      this.targetWindow = window.parent;
+      window.parent.postMessage({ scope: SCOPE, type: 'hello' }, '*');
+      return this.waitReady();
+    }
+
+    // Fallback for desktop/direct GitHub Pages access.
     const iframe = document.createElement('iframe');
     iframe.title = 'Google Apps Script 云端桥接';
-
-    // iOS Safari may defer/suspend fully invisible or far-offscreen iframes.
-    // Keep the bridge inside the viewport while making it effectively invisible.
     iframe.style.position = 'fixed';
     iframe.style.width = '2px';
     iframe.style.height = '2px';
@@ -69,10 +78,10 @@ export class CloudBridge {
     iframe.style.bottom = '0';
     iframe.style.zIndex = '-1';
     iframe.setAttribute('aria-hidden', 'true');
-
     iframe.src = `${url}?mode=bridge&v=${Date.now()}`;
     document.body.appendChild(iframe);
     this.iframe = iframe;
+    this.targetWindow = iframe.contentWindow;
     return this.waitReady();
   }
 
@@ -87,7 +96,7 @@ export class CloudBridge {
 
   async call<T = any>(action: string, payload: any = null): Promise<T> {
     await this.waitReady();
-    if (!this.iframe?.contentWindow) throw new Error('云端桥接不可用');
+    if (!this.targetWindow) throw new Error('云端桥接不可用');
     const id = ++this.seq;
     return new Promise<T>((resolve, reject) => {
       const timer = window.setTimeout(() => {
@@ -95,7 +104,7 @@ export class CloudBridge {
         reject(new Error(`云端操作超时：${action}`));
       }, 20000);
       this.pending.set(id, { resolve, reject, timer });
-      this.iframe!.contentWindow!.postMessage({ scope: SCOPE, type: 'request', id, action, payload }, '*');
+      this.targetWindow!.postMessage({ scope: SCOPE, type: 'request', id, action, payload }, '*');
     });
   }
 
