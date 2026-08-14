@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Drawnix, type DrawnixToolState } from '@drawnix/drawnix';
-import '@drawnix/drawnix/index.css';
 import type { BoardChangeData } from '@plait-board/react-board';
 import { CloudBridge } from './cloudBridge';
 import { blankBoard, migrateLegacy } from './migration';
@@ -62,7 +61,6 @@ export default function App() {
     if (!backendUrl) { setLoading(false); return; }
     void boot(backendUrl);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendUrl]);
 
   async function boot(url: string) {
