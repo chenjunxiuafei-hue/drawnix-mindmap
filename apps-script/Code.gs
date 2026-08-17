@@ -10,21 +10,12 @@ const ALLOWED_PARENT_ORIGINS = [
 ];
 
 function doGet(e) {
-  const mode = e && e.parameter && e.parameter.mode;
-  if (mode === 'bridge') {
-    const tpl = HtmlService.createTemplateFromFile('Bridge');
-    tpl.allowedOriginsJson = JSON.stringify(ALLOWED_PARENT_ORIGINS);
-    return tpl.evaluate()
-      .setTitle('MindMap Cloud Bridge')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  }
-  return HtmlService.createHtmlOutput(
-    '<!doctype html><meta charset="utf-8"><title>MindMap Cloud</title>' +
-    '<style>body{font-family:system-ui;padding:32px;color:#172033}code{background:#f2f4f7;padding:2px 6px;border-radius:6px}</style>' +
-    '<h2>MindMap Cloud 后台已运行</h2><p>这是 Drawnix 思维导图库的 Google Drive 云端桥接后台。</p>' +
-    '<p>前端会通过 <code>?mode=bridge</code> 的隐藏 iframe 调用这里。</p>'
-  );
+  const tpl = HtmlService.createTemplateFromFile('Bridge');
+  tpl.allowedOriginsJson = JSON.stringify(ALLOWED_PARENT_ORIGINS);
+  return tpl.evaluate()
+    .setTitle('Drawnix MindMap')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
 
 function apiPing() {
